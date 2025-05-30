@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,12 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/lib/auth-context";
+import { Loader2 } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { signIn, signUp, error } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,20 +23,26 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Placeholder for Supabase auth implementation
-      // This will be implemented when Supabase is properly set up
-      
-      toast({
-        title: "Success!",
-        description: isLogin ? "Successfully signed in!" : "Account created successfully!",
-      });
+      if (isLogin) {
+        await signIn(email, password);
+        toast({
+          title: "Success!",
+          description: "Successfully signed in!",
+        });
+      } else {
+        await signUp(email, password, name);
+        toast({
+          title: "Success!",
+          description: "Account created successfully! Please check your email for verification.",
+        });
+      }
       
       // Redirect to projects page after successful auth
       navigate("/my-projects");
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Authentication failed. Please try again.",
+        description: error.message || "Authentication failed. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -68,12 +77,26 @@ const Login = () => {
             <CardDescription className="text-center">
               {isLogin 
                 ? "Enter your email and password to access your projects" 
-                : "Enter your email and password to get started"
+                : "Enter your details to get started"
               }
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Enter your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -83,6 +106,7 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -94,6 +118,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               <Button 
@@ -101,7 +126,14 @@ const Login = () => {
                 className="w-full" 
                 disabled={isLoading}
               >
-                {isLoading ? "Loading..." : (isLogin ? "Sign In" : "Sign Up")}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isLogin ? "Signing in..." : "Creating account..."}
+                  </>
+                ) : (
+                  isLogin ? "Sign In" : "Sign Up"
+                )}
               </Button>
             </form>
             
@@ -110,6 +142,7 @@ const Login = () => {
                 type="button"
                 onClick={() => setIsLogin(!isLogin)}
                 className="text-primary hover:underline text-sm"
+                disabled={isLoading}
               >
                 {isLogin 
                   ? "Don't have an account? Sign up" 

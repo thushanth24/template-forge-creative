@@ -1,10 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { Search, Filter, Grid, List } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 
 interface Template {
   id: string;
@@ -14,75 +15,44 @@ interface Template {
   description: string;
 }
 
-const mockTemplates: Template[] = [
-  {
-    id: "1",
-    title: "Modern Resume",
-    category: "Resume",
-    thumbnail: "/placeholder.svg",
-    description: "Clean and professional resume template"
-  },
-  {
-    id: "2", 
-    title: "Creative Cover Letter",
-    category: "Cover Letter",
-    thumbnail: "/placeholder.svg",
-    description: "Eye-catching cover letter design"
-  },
-  {
-    id: "3",
-    title: "Event Poster",
-    category: "Poster",
-    thumbnail: "/placeholder.svg", 
-    description: "Vibrant poster for events and promotions"
-  },
-  {
-    id: "4",
-    title: "Business Card",
-    category: "Business Card",
-    thumbnail: "/placeholder.svg",
-    description: "Professional business card template"
-  },
-  {
-    id: "5",
-    title: "Social Media Post",
-    category: "Social Media",
-    thumbnail: "/placeholder.svg",
-    description: "Instagram-ready social media template"
-  },
-  {
-    id: "6",
-    title: "Flyer Design",
-    category: "Flyer",
-    thumbnail: "/placeholder.svg",
-    description: "Marketing flyer template"
-  }
-];
-
 const categories = ["All", "Resume", "Cover Letter", "Poster", "Business Card", "Social Media", "Flyer"];
 
 const Index = () => {
   const navigate = useNavigate();
-  const [templates, setTemplates] = useState<Template[]>(mockTemplates);
-  const [filteredTemplates, setFilteredTemplates] = useState<Template[]>(mockTemplates);
+  const { user, loading, signOut } = useAuth();
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
+  // Fetch templates from Supabase
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      const { data, error } = await supabase
+        .from("templates")
+        .select("*");
+      if (error) {
+        console.error("Error fetching templates:", error);
+      } else {
+        setTemplates(data || []);
+        setFilteredTemplates(data || []);
+      }
+    };
+    fetchTemplates();
+  }, []);
+
   useEffect(() => {
     let filtered = templates;
-    
     if (selectedCategory !== "All") {
       filtered = filtered.filter(template => template.category === selectedCategory);
     }
-    
     if (searchTerm) {
-      filtered = filtered.filter(template => 
+      filtered = filtered.filter(template =>
         template.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         template.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
     setFilteredTemplates(filtered);
   }, [searchTerm, selectedCategory, templates]);
 
@@ -100,12 +70,19 @@ const Index = () => {
               <h1 className="text-2xl font-bold text-primary">DesignForge</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" onClick={() => navigate("/login")}>
-                Sign In
-              </Button>
-              <Button onClick={() => navigate("/login")}>
-                Get Started
-              </Button>
+              {loading ? null : user ? (
+                <>
+                  <span className="font-medium">Hello, {user.user_metadata?.name || "User"}!</span>
+                  <Button variant="outline" onClick={signOut}>
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => navigate("/login")}>Sign In</Button>
+                  <Button onClick={() => navigate("/login")}>Get Started</Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -131,7 +108,6 @@ const Index = () => {
             <h3 className="text-3xl font-bold text-gray-900 mb-2">Choose a Template</h3>
             <p className="text-gray-600">Start with a professionally designed template</p>
           </div>
-          
           {/* Search and Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mt-6 lg:mt-0">
             <div className="relative">
