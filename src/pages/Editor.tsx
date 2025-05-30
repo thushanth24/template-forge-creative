@@ -212,7 +212,8 @@ const Editor = () => {
     
     const dataURL = fabricCanvas.toDataURL({
       format: 'png',
-      quality: 1
+      quality: 1,
+      multiplier: 1
     });
     
     const link = document.createElement('a');
