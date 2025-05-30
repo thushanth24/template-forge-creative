@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import {
   Trash2
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-import { Canvas as FabricCanvas, Textbox, Rect, Circle as FabricCircle } from "fabric";
+import { Canvas as FabricCanvas, Textbox, Rect, Circle as FabricCircle, FabricImage } from "fabric";
 
 const Editor = () => {
   const { templateId } = useParams();
@@ -28,6 +29,7 @@ const Editor = () => {
   useEffect(() => {
     const initializeFabric = async () => {
       try {
+        console.log('Initializing Fabric.js canvas...');
         if (canvasRef.current) {
           const canvas = new FabricCanvas(canvasRef.current, {
             width: 800,
@@ -35,24 +37,32 @@ const Editor = () => {
             backgroundColor: 'white'
           });
 
+          console.log('Canvas created:', canvas);
+          
           // Load template based on ID
           loadTemplate(canvas, templateId);
           
-          // Handle object selection
-          canvas.on('selection:created', (e) => {
-            setSelectedObject(e.selected?.[0] || null);
+          // Handle object selection with correct event structure
+          canvas.on('selection:created', (e: any) => {
+            console.log('Selection created:', e);
+            const activeObject = canvas.getActiveObject();
+            setSelectedObject(activeObject);
           });
           
-          canvas.on('selection:updated', (e) => {
-            setSelectedObject(e.selected?.[0] || null);
+          canvas.on('selection:updated', (e: any) => {
+            console.log('Selection updated:', e);
+            const activeObject = canvas.getActiveObject();
+            setSelectedObject(activeObject);
           });
           
           canvas.on('selection:cleared', () => {
+            console.log('Selection cleared');
             setSelectedObject(null);
           });
 
           setFabricCanvas(canvas);
           setIsLoading(false);
+          console.log('Canvas initialization complete');
         }
       } catch (error) {
         console.error('Failed to initialize Fabric.js:', error);
@@ -61,6 +71,7 @@ const Editor = () => {
           description: "Failed to load the editor. Please try again.",
           variant: "destructive"
         });
+        setIsLoading(false);
       }
     };
 
@@ -68,12 +79,14 @@ const Editor = () => {
 
     return () => {
       if (fabricCanvas) {
+        console.log('Disposing canvas');
         fabricCanvas.dispose();
       }
     };
   }, [templateId]);
 
   const loadTemplate = (canvas: FabricCanvas, id: string | undefined) => {
+    console.log('Loading template:', id);
     // Mock template data - in a real app, this would come from your backend
     const templates: { [key: string]: any } = {
       "1": {
@@ -126,10 +139,13 @@ const Editor = () => {
           canvas.add(textbox);
         }
       });
+      canvas.renderAll();
+      console.log('Template loaded successfully');
     }
   };
 
   const addText = () => {
+    console.log('Adding text element');
     if (!fabricCanvas) return;
     
     const text = new Textbox('Click to edit text', {
@@ -142,9 +158,11 @@ const Editor = () => {
     fabricCanvas.add(text);
     fabricCanvas.setActiveObject(text);
     fabricCanvas.renderAll();
+    console.log('Text element added');
   };
 
   const addShape = (shapeType: 'rectangle' | 'circle') => {
+    console.log('Adding shape:', shapeType);
     if (!fabricCanvas) return;
 
     let shape;
@@ -168,16 +186,18 @@ const Editor = () => {
     fabricCanvas.add(shape);
     fabricCanvas.setActiveObject(shape);
     fabricCanvas.renderAll();
+    console.log('Shape added successfully');
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !fabricCanvas) return;
 
+    console.log('Uploading image:', file.name);
     const reader = new FileReader();
     reader.onload = (e) => {
       const imgURL = e.target?.result as string;
-      (window as any).fabric.Image.fromURL(imgURL, (img: any) => {
+      FabricImage.fromURL(imgURL).then((img) => {
         img.scaleToWidth(200);
         img.set({
           left: 100,
@@ -186,17 +206,27 @@ const Editor = () => {
         fabricCanvas.add(img);
         fabricCanvas.setActiveObject(img);
         fabricCanvas.renderAll();
+        console.log('Image added successfully');
+      }).catch((error) => {
+        console.error('Error loading image:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load image. Please try again.",
+          variant: "destructive"
+        });
       });
     };
     reader.readAsDataURL(file);
   };
 
   const deleteSelected = () => {
+    console.log('Deleting selected object');
     if (!fabricCanvas || !selectedObject) return;
     
     fabricCanvas.remove(selectedObject);
     fabricCanvas.renderAll();
     setSelectedObject(null);
+    console.log('Object deleted');
   };
 
   const handleSave = () => {
@@ -208,6 +238,7 @@ const Editor = () => {
   };
 
   const handleDownload = () => {
+    console.log('Downloading canvas as PNG');
     if (!fabricCanvas) return;
     
     const dataURL = fabricCanvas.toDataURL({
@@ -220,6 +251,7 @@ const Editor = () => {
     link.download = 'design.png';
     link.href = dataURL;
     link.click();
+    console.log('Download initiated');
   };
 
   if (isLoading) {
