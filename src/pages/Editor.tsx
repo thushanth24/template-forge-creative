@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,23 +15,21 @@ import {
   Trash2
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { Canvas as FabricCanvas, Textbox, Rect, Circle as FabricCircle } from "fabric";
 
 const Editor = () => {
   const { templateId } = useParams();
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [fabricCanvas, setFabricCanvas] = useState<any>(null);
+  const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
   const [selectedObject, setSelectedObject] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const initializeFabric = async () => {
       try {
-        // Dynamically import Fabric.js
-        const { fabric } = await import('fabric');
-        
         if (canvasRef.current) {
-          const canvas = new fabric.Canvas(canvasRef.current, {
+          const canvas = new FabricCanvas(canvasRef.current, {
             width: 800,
             height: 1000,
             backgroundColor: 'white'
@@ -76,7 +73,7 @@ const Editor = () => {
     };
   }, [templateId]);
 
-  const loadTemplate = (canvas: any, id: string | undefined) => {
+  const loadTemplate = (canvas: FabricCanvas, id: string | undefined) => {
     // Mock template data - in a real app, this would come from your backend
     const templates: { [key: string]: any } = {
       "1": {
@@ -119,7 +116,7 @@ const Editor = () => {
     if (template && template.objects) {
       template.objects.forEach((obj: any) => {
         if (obj.type === 'textbox') {
-          const textbox = new (window as any).fabric.Textbox(obj.text, {
+          const textbox = new Textbox(obj.text, {
             left: obj.left,
             top: obj.top,
             fontSize: obj.fontSize,
@@ -135,7 +132,7 @@ const Editor = () => {
   const addText = () => {
     if (!fabricCanvas) return;
     
-    const text = new (window as any).fabric.Textbox('Click to edit text', {
+    const text = new Textbox('Click to edit text', {
       left: 100,
       top: 100,
       fontSize: 16,
@@ -152,7 +149,7 @@ const Editor = () => {
 
     let shape;
     if (shapeType === 'rectangle') {
-      shape = new (window as any).fabric.Rect({
+      shape = new Rect({
         left: 100,
         top: 100,
         width: 100,
@@ -160,7 +157,7 @@ const Editor = () => {
         fill: '#3B82F6'
       });
     } else {
-      shape = new (window as any).fabric.Circle({
+      shape = new FabricCircle({
         left: 100,
         top: 100,
         radius: 50,
